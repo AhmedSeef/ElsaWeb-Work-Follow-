@@ -1,0 +1,42 @@
+﻿@model IEnumerable<Request>
+
+<h1>Request List</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var request in Model)
+        {
+            <tr>
+                <td>@request.Id</td>
+                <td>@request.Name</td>
+                <td>@request.Status</td>
+                <td>
+                    @if (request.Status == "Created")
+                    {
+                        <form method="post" asp-action="ApproveRequest">
+                            <input type="hidden" name="requestId" value="@request.Id" />
+                            <button type="submit" class="btn btn-success")>Approve</button>
+                        </form>
+                        <form method="post" asp-action="RejectRequest">
+                            <input type="hidden" name="requestId" value="@request.Id" />
+                            <button type="submit" class="btn btn-danger")>Reject</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        @* Button to insert a new random request *@
+    </tbody>
+</table>
+
+<form method="post" action="/Request/InsertRequest">
+    <button type="submit" class="btn btn-primary">Insert Random Request</button>
+</form>
