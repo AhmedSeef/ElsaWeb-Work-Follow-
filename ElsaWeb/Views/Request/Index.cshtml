@@ -19,24 +19,30 @@
                 <td>@request.Name</td>
                 <td>@request.Status</td>
                 <td>
-                    @if (request.Status == "Created")
+                    @if (request.Status == RequestStatus.Submitted)
+                    {
+                        <form method="post" asp-action="AssignRequest">
+                            <input type="hidden" name="requestId" value="@request.Id" />
+                            <button type="submit" class="btn btn-warning">Assign</button>
+                        </form>
+                    }
+                    else if (request.Status == RequestStatus.Assigned)
                     {
                         <form method="post" asp-action="ApproveRequest">
                             <input type="hidden" name="requestId" value="@request.Id" />
-                            <button type="submit" class="btn btn-success")>Approve</button>
+                            <button type="submit" class="btn btn-success">Approve</button>
                         </form>
                         <form method="post" asp-action="RejectRequest">
                             <input type="hidden" name="requestId" value="@request.Id" />
-                            <button type="submit" class="btn btn-danger")>Reject</button>
+                            <button type="submit" class="btn btn-danger">Reject</button>
                         </form>
                     }
                 </td>
             </tr>
         }
-        @* Button to insert a new random request *@
     </tbody>
 </table>
 
 <form method="post" action="/Request/InsertRequest">
-    <button type="submit" class="btn btn-primary">Insert Random Request</button>
+    <button type="submit" class="btn btn-primary">Insert New Request</button>
 </form>

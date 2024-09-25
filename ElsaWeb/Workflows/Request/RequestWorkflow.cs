@@ -5,6 +5,7 @@ using Elsa.Workflows.Models;
 using Elsa.Workflows;
 using ElsaWeb.Data;
 using ElsaWeb.Workflows.Request;
+using ElsaWeb.Models;
 
 namespace ElsaWeb.Workflows.RequestWorkFollow
 {
@@ -12,9 +13,8 @@ namespace ElsaWeb.Workflows.RequestWorkFollow
     {
         private readonly AppDbContext _dbContext;
         private readonly ElsaWeb.Models.Request _request;
-        private readonly string _actionType;  // "add" or "update"
+        private readonly string _actionType;
 
-        // Constructor that accepts the dbContext, Request object, and actionType (add or update)
         public RequestWorkflow(AppDbContext dbContext, ElsaWeb.Models.Request request, string actionType)
         {
             _dbContext = dbContext;
@@ -24,23 +24,20 @@ namespace ElsaWeb.Workflows.RequestWorkFollow
 
         protected override void Build(IWorkflowBuilder builder)
         {
-            // Define a variable to store the action type
             var actionTypeVar = new Variable<string>(_actionType);
 
             builder.Root = new Sequence
             {
-                Variables = { actionTypeVar },  // Add the actionType variable to the workflow
+                Variables = { actionTypeVar },
 
                 Activities =
                 {
-                    // Use an If activity to branch based on the actionType variable
                     new If(context => actionTypeVar.Get(context) == "add")
                     {
                         Then = new Sequence
                         {
                             Activities =
                             {
-                                // Add new request using RequestInsertActivity
                                 new RequestInsertActivity(_dbContext)
                                 {
                                     RequestInput = new Input<ElsaWeb.Models.Request>(_request)
@@ -51,14 +48,15 @@ namespace ElsaWeb.Workflows.RequestWorkFollow
                         {
                             Activities =
                             {
-                                 new RequestUpdateActivity(_dbContext)
-                                    {
-                                        RequestIdInput = new Input<int>(_request.Id),
-                                        IsApprovedInput = new Input<bool>(_request.IsApproved)
-                                    }
+                                new RequestUpdateActivity(_dbContext)
+                                {
+                                    RequestIdInput = new Input<int>(_request.Id),
+                                    IsApprovedInput = new Input<bool?>((bool?)_request.IsApproved),
+                                    NewStatusInput = new Input<RequestStatus>(_request.Status)
+                                }
                             }
                         }
-                    }
+                    } 
                 }
             };
         }

@@ -2,6 +2,7 @@
 using Elsa.Workflows;
 using ElsaWeb.Data;
 using Elsa.Extensions;
+using ElsaWeb.Models;
 
 namespace ElsaWeb.Workflows.Request
 {
@@ -9,7 +10,8 @@ namespace ElsaWeb.Workflows.Request
     {
         private readonly AppDbContext _dbContext;
         public Input<int> RequestIdInput { get; set; } = default!;
-        public Input<bool> IsApprovedInput { get; set; } = default!;
+        public Input<bool?> IsApprovedInput { get; set; } = default!;
+        public Input<RequestStatus> NewStatusInput { get; set; } = default!;
 
         public RequestUpdateActivity(AppDbContext dbContext)
         {
@@ -18,25 +20,49 @@ namespace ElsaWeb.Workflows.Request
 
         protected override void Execute(ActivityExecutionContext context)
         {
-            var requestId = RequestIdInput.Get(context);
-            var isApproved = IsApprovedInput.Get(context);
-
-            var existingRequest = _dbContext.Requests.Find(requestId);
-
-            if (existingRequest != null)
+            try
             {
-                existingRequest.IsApproved = isApproved;
-                existingRequest.Status = isApproved ? "Approved" : "Rejected";
+                var requestId = RequestIdInput.Get(context);
+                var newStatus = NewStatusInput.Get(context);
+                var isApproved = IsApprovedInput.Get(context);
 
-                _dbContext.SaveChanges();
-                var resultMessage = isApproved ? "Request Approved Successfully" : "Request Rejected";
-                context.SetResult(resultMessage);
+                var existingRequest = _dbContext.Requests.Find(requestId);
+
+                if (existingRequest != null)
+                {
+                    // Update the status based on the input
+                    existingRequest.Status = newStatus;
+
+                    // If we are approving/rejecting, also update the IsApproved field
+                    if (newStatus == RequestStatus.Approved || newStatus == RequestStatus.Rejected)
+                    {
+                        if (isApproved.HasValue)
+                        {
+                            existingRequest.IsApproved = isApproved.Value;
+                        }
+                    }
+
+                    _dbContext.SaveChanges();
+
+                    var resultMessage = newStatus switch
+                    {
+                        RequestStatus.Assigned => "Request Assigned Successfully",
+                        RequestStatus.Approved => "Request Approved Successfully",
+                        RequestStatus.Rejected => "Request Rejected",
+                        _ => "Status Updated"
+                    };
+
+                    context.SetResult(resultMessage);
+                }
+                else
+                {
+                    context.SetResult("Request Not Found");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                context.SetResult("Request Not Found");
+                context.SetResult($"Error: {ex.Message}");
             }
         }
     }
-
 }

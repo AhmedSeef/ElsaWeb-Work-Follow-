@@ -18,31 +18,47 @@ namespace ElsaWeb.Controllers
             _workflowRunner = workflowRunner;
         }
 
+        // Display all requests
         public async Task<IActionResult> Index()
         {
-            var requests = await _dbContext.Requests.ToListAsync();  
-            return View(requests); 
+            var requests = await _dbContext.Requests.ToListAsync();
+            return View(requests);
         }
 
+        // Insert a new request with "submitted" status
         [HttpPost]
         public async Task<IActionResult> InsertRequest()
         {
             var random = new Random();
             var request = new Request
             {
-                Name = $"Request_{random.Next(1, 1000)}", 
-                IsApproved = random.Next(2) == 1,      
-                Status = "Created"
+                Name = $"Request_{random.Next(1, 1000)}",
+                Status = RequestStatus.Submitted
             };
 
-           
             var workflow = new RequestWorkflow(_dbContext, request, "add");
             await _workflowRunner.RunAsync(workflow);
 
             return RedirectToAction(nameof(Index));
         }
 
-        // Approve a request
+        // Assign the request and update status to "Assigned"
+        [HttpPost]
+        public async Task<IActionResult> AssignRequest(int requestId)
+        {
+            var request = await _dbContext.Requests.FindAsync(requestId);
+            if (request == null)
+                return NotFound();
+
+            request.Status = RequestStatus.Assigned;
+
+            var workflow = new RequestWorkflow(_dbContext, request, "update");
+            await _workflowRunner.RunAsync(workflow);
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Approve a request and update status to "Approved"
         [HttpPost]
         public async Task<IActionResult> ApproveRequest(int requestId)
         {
@@ -51,6 +67,7 @@ namespace ElsaWeb.Controllers
                 return NotFound();
 
             request.IsApproved = true;
+            request.Status = RequestStatus.Approved;
 
             var workflow = new RequestWorkflow(_dbContext, request, "update");
             await _workflowRunner.RunAsync(workflow);
@@ -58,7 +75,7 @@ namespace ElsaWeb.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // Reject a request
+        // Reject a request and update status to "Rejected"
         [HttpPost]
         public async Task<IActionResult> RejectRequest(int requestId)
         {
@@ -67,7 +84,8 @@ namespace ElsaWeb.Controllers
                 return NotFound();
 
             request.IsApproved = false;
-            request.Status = "Rejected";
+            request.Status = RequestStatus.Rejected;
+
             var workflow = new RequestWorkflow(_dbContext, request, "update");
             await _workflowRunner.RunAsync(workflow);
 
